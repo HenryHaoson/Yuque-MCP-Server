@@ -13,11 +13,13 @@ export const Logger = {
 
 export class YuqueMcpServer {
   private readonly server: McpServer;
-  private readonly yuqueService: YuqueService;
   private sseTransport: SSEServerTransport | null = null;
+  private yuqueApiToken: string;
+  private yuqueApiBaseUrl: string;
 
   constructor(yuqueApiToken: string, yuqueApiBaseUrl: string) {
-    this.yuqueService = new YuqueService(yuqueApiToken, yuqueApiBaseUrl);
+    this.yuqueApiToken = yuqueApiToken;
+    this.yuqueApiBaseUrl = yuqueApiBaseUrl;
     this.server = new McpServer(
       {
         name: "Yuque MCP Server",
@@ -34,6 +36,11 @@ export class YuqueMcpServer {
     this.registerTools();
   }
 
+  // 创建新的YuqueService实例的辅助方法
+  private createYuqueService(): YuqueService {
+    return new YuqueService(this.yuqueApiToken, this.yuqueApiBaseUrl);
+  }
+
   private registerTools(): void {
     // Tool to get current user information
     this.server.tool(
@@ -43,7 +50,8 @@ export class YuqueMcpServer {
       async () => {
         try {
           Logger.log("Fetching current user information");
-          const user = await this.yuqueService.getCurrentUser();
+          const yuqueService = this.createYuqueService();
+          const user = await yuqueService.getCurrentUser();
           
           Logger.log(`Successfully fetched user: ${user.name}`);
           Logger.log(JSON.stringify(user) );
@@ -67,7 +75,8 @@ export class YuqueMcpServer {
       async () => {
         try {
           Logger.log("Fetching user's documents");
-          const docs = await this.yuqueService.getUserDocs();
+          const yuqueService = this.createYuqueService();
+          const docs = await yuqueService.getUserDocs();
           
           Logger.log(`Successfully fetched ${docs.length} documents`);
           return {
@@ -92,7 +101,8 @@ export class YuqueMcpServer {
       async ({ login }) => {
         try {
           Logger.log(`Fetching repositories for user: ${login}`);
-          const repos = await this.yuqueService.getUserRepos(login);
+          const yuqueService = this.createYuqueService();
+          const repos = await yuqueService.getUserRepos(login);
           
           Logger.log(`Successfully fetched ${repos.length} repositories`);
           return {
@@ -117,7 +127,8 @@ export class YuqueMcpServer {
       async ({ namespace }) => {
         try {
           Logger.log(`Fetching documents for repository: ${namespace}`);
-          const docs = await this.yuqueService.getRepoDocs(namespace);
+          const yuqueService = this.createYuqueService();
+          const docs = await yuqueService.getRepoDocs(namespace);
           
           Logger.log(`Successfully fetched ${docs.length} documents`);
           return {
@@ -143,7 +154,8 @@ export class YuqueMcpServer {
       async ({ namespace, slug }) => {
         try {
           Logger.log(`Fetching document ${slug} from repository: ${namespace}`);
-          const doc = await this.yuqueService.getDoc(namespace, slug);
+          const yuqueService = this.createYuqueService();
+          const doc = await yuqueService.getDoc(namespace, slug);
           
           Logger.log(`Successfully fetched document: ${doc.title}`);
           return {
@@ -173,7 +185,8 @@ export class YuqueMcpServer {
       async ({ namespace, title, slug, body, format = 'markdown', public_level = 1 }) => {
         try {
           Logger.log(`Creating document "${title}" in repository: ${namespace}`);
-          const doc = await this.yuqueService.createDoc(namespace, title, slug, body, format, public_level);
+          const yuqueService = this.createYuqueService();
+          const doc = await yuqueService.createDoc(namespace, title, slug, body, format, public_level);
           
           Logger.log(`Successfully created document: ${doc.title}`);
           return {
@@ -204,6 +217,7 @@ export class YuqueMcpServer {
       async ({ namespace, id, title, slug, body, public: publicLevel, format }) => {
         try {
           Logger.log(`Updating document ${id} in repository: ${namespace}`);
+          const yuqueService = this.createYuqueService();
           const updateData: any = {};
           if (title !== undefined) updateData.title = title;
           if (slug !== undefined) updateData.slug = slug;
@@ -211,7 +225,7 @@ export class YuqueMcpServer {
           if (publicLevel !== undefined) updateData.public = publicLevel;
           if (format !== undefined) updateData.format = format;
           
-          const doc = await this.yuqueService.updateDoc(namespace, id, updateData);
+          const doc = await yuqueService.updateDoc(namespace, id, updateData);
           
           Logger.log(`Successfully updated document: ${doc.title}`);
           return {
@@ -237,7 +251,8 @@ export class YuqueMcpServer {
       async ({ namespace, id }) => {
         try {
           Logger.log(`Deleting document ${id} from repository: ${namespace}`);
-          await this.yuqueService.deleteDoc(namespace, id);
+          const yuqueService = this.createYuqueService();
+          await yuqueService.deleteDoc(namespace, id);
           
           Logger.log(`Successfully deleted document ${id}`);
           return {
@@ -266,7 +281,8 @@ export class YuqueMcpServer {
       async ({ query, type, scope, page, creator }) => {
         try {
           Logger.log(`Searching for: ${query} with type: ${type}`);
-          const results = await this.yuqueService.search(query, type, scope, page, creator);
+          const yuqueService = this.createYuqueService();
+          const results = await yuqueService.search(query, type, scope, page, creator);
           
           Logger.log(`Successfully found ${results.length} results`);
           return {
@@ -291,7 +307,8 @@ export class YuqueMcpServer {
       async ({ login }) => {
         try {
           Logger.log(`Fetching statistics for group: ${login}`);
-          const stats = await this.yuqueService.getGroupStatistics(login);
+          const yuqueService = this.createYuqueService();
+          const stats = await yuqueService.getGroupStatistics(login);
           
           Logger.log(`Successfully fetched statistics for group: ${login}`);
           return {
@@ -323,7 +340,8 @@ export class YuqueMcpServer {
         try {
           const { login, ...queryParams } = params;
           Logger.log(`Fetching member statistics for group: ${login}`);
-          const stats = await this.yuqueService.getGroupMemberStatistics(login, queryParams);
+          const yuqueService = this.createYuqueService();
+          const stats = await yuqueService.getGroupMemberStatistics(login, queryParams);
           
           Logger.log(`Successfully fetched member statistics for group: ${login}`);
           return {
@@ -355,7 +373,8 @@ export class YuqueMcpServer {
         try {
           const { login, ...queryParams } = params;
           Logger.log(`Fetching book statistics for group: ${login}`);
-          const stats = await this.yuqueService.getGroupBookStatistics(login, queryParams);
+          const yuqueService = this.createYuqueService();
+          const stats = await yuqueService.getGroupBookStatistics(login, queryParams);
           
           Logger.log(`Successfully fetched book statistics for group: ${login}`);
           return {
@@ -388,7 +407,8 @@ export class YuqueMcpServer {
         try {
           const { login, ...queryParams } = params;
           Logger.log(`Fetching doc statistics for group: ${login}`);
-          const stats = await this.yuqueService.getGroupDocStatistics(login, queryParams);
+          const yuqueService = this.createYuqueService();
+          const stats = await yuqueService.getGroupDocStatistics(login, queryParams);
           
           Logger.log(`Successfully fetched doc statistics for group: ${login}`);
           return {
@@ -474,12 +494,17 @@ export class YuqueMcpServer {
       const queryAccessToken = req.query.accessToken as string | undefined;
       const queryBaseUrl = req.query.baseUrl as string | undefined;
       
-      // 如果提供了 query 参数，更新 Yuque 服务配置
+      // 如果提供了 query 参数，更新配置
       if (queryAccessToken || queryBaseUrl) {
         console.log(`Using custom configuration: ${queryAccessToken ? 'Token from query, ' : ''}${queryBaseUrl ? 'BaseUrl from query' : ''}`);
         
-        // 更新服务配置
-        this.yuqueService.updateConfig(queryAccessToken, queryBaseUrl);
+        // 更新配置属性
+        if (queryAccessToken) {
+          this.yuqueApiToken = queryAccessToken;
+        }
+        if (queryBaseUrl) {
+          this.yuqueApiBaseUrl = queryBaseUrl;
+        }
       }
       
       this.sseTransport = new SSEServerTransport(
