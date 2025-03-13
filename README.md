@@ -1,10 +1,12 @@
-# Yuque MCP Server
+# 语雀 MCP 服务器
 
-A Model-Context-Protocol (MCP) server for integrating with Yuque's API. This implementation is inspired by [Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) and uses the [Yuque Open API](https://app.swaggerhub.com/apis-docs/Jeff-Tian/yuque-open_api/2.0.1).
+[English Version](./README.en.md)
 
-## Overview
+一个用于与语雀 API 集成的 Model-Context-Protocol (MCP) 服务器。此实现受 [Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) 的启发，并使用 [语雀开放 API](https://app.swaggerhub.com/apis-docs/Jeff-Tian/yuque-open_api/2.0.1)。
 
-This server provides MCP tools for interacting with Yuque's knowledge base platform, allowing AI models to:
+## 概述
+
+该服务器提供了与语雀知识库平台交互的 MCP 工具，允许 AI 模型：
 
 - 获取用户和文档信息
 - 创建、读取、更新和删除文档
@@ -12,67 +14,67 @@ This server provides MCP tools for interacting with Yuque's knowledge base platf
 - 获取知识库信息
 - 获取统计数据和分析信息
 
-## Installation
+## 安装
 
-### Prerequisites
+### 前提条件
 
-- Node.js 18+ (recommended)
-- Yuque account with API token
+- Node.js 18+ (推荐)
+- 拥有 API 令牌的语雀账号
 
-### Setup
+### 设置
 
-1. Clone this repository:
+1. 克隆此仓库：
    ```
    git clone https://github.com/Henryhaoson/Yueque-MCP-Server.git
    cd Yueque-MCP-Server
    ```
 
-2. Install dependencies:
+2. 安装依赖：
    ```
    npm install
    ```
 
-3. Create a `.env` file based on the `.env.example`:
+3. 基于 `.env.example` 创建 `.env` 文件：
    ```
    cp .env.example .env
    ```
 
-4. (可选) 在 `.env` 文件中添加你的语雀 API token：
+4. (可选) 在 `.env` 文件中添加你的语雀 API 令牌：
    ```
    YUQUE_API_TOKEN=your_yuque_api_token_here
    ```
    
-   你也可以选择在连接到服务器时通过查询参数提供 token，而不是在 .env 文件中设置。
+   你也可以选择在连接到服务器时通过查询参数提供令牌，而不是在 .env 文件中设置。
 
-## Usage
+## 使用方法
 
-### Running the Server
+### 运行服务器
 
-#### Development Mode
+#### 开发模式
 
 ```bash
-# HTTP server mode
+# HTTP 服务器模式
 npm run dev
 
-# CLI stdio mode
+# CLI stdio 模式
 npm run dev:cli
 ```
 
-#### Production Mode
+#### 生产模式
 
-First, build the project:
+首先，构建项目：
 
 ```bash
 npm run build
 ```
 
-Then run in either HTTP or CLI mode:
+然后在 HTTP 或 CLI 模式下运行：
 
 ```bash
-# HTTP server mode
+# HTTP 服务器模式
 npm run start
 
-# CLI stdio mode
+# CLI stdio 模式
 npm run start:cli
 ```
 
@@ -125,9 +127,9 @@ YUQUE_API_BASE_URL=https://www.yuque.com/api/v2
      --name yuque-mcp-server yuque-mcp-server
    ```
 
-### MCP Tools
+### MCP 工具
 
-The Yuque MCP Server provides the following tools:
+语雀 MCP 服务器提供以下工具：
 
 #### 用户和文档管理
 - `get_current_user` - 获取当前认证用户的信息，包括用户ID、用户名、头像等语雀账号基本信息
@@ -146,15 +148,15 @@ The Yuque MCP Server provides the following tools:
 - `get_group_book_statistics` - 获取团队知识库的统计数据，包括各知识库的文档数、字数、阅读量等
 - `get_group_doc_statistics` - 获取团队文档的统计数据，包括各文档的字数、阅读量、评论量等
 
-## Integration with AI Models
+## 与 AI 模型的集成
 
-This MCP server can be used with AI models that support the Model-Context-Protocol, allowing them to interact with Yuque through defined tools. For example:
+此 MCP 服务器可以与支持 Model-Context-Protocol 的 AI 模型一起使用，允许它们通过定义的工具与语雀交互。例如：
 
-1. Start the MCP server
-2. Connect to the server from a compatible client
-3. The AI model can now use the registered tools to interact with Yuque data
+1. 启动 MCP 服务器
+2. 从兼容的客户端连接到服务器
+3. AI 模型现在可以使用注册的工具与语雀数据交互
 
-### Query Parameters for SSE Endpoint
+### SSE 端点的查询参数
 
 当连接到 SSE 端点时，你可以通过查询参数（query parameters）覆盖环境配置，这些参数的优先级高于环境变量：
 
@@ -170,23 +172,23 @@ http://localhost:3000/sse?accessToken=your_token_here&baseUrl=https://custom.yuq
 
 每个 SSE 连接都可以使用不同的配置，这使得同一个服务器实例可以同时为不同的用户或环境提供服务。
 
-## Development
+## 开发
 
-### Project Structure
+### 项目结构
 
 ```
 src/
-  ├── config.ts          # Server configuration
-  ├── index.ts           # Main entry point
-  ├── cli.ts             # CLI entry point 
-  ├── server.ts          # MCP server implementation
+  ├── config.ts          # 服务器配置
+  ├── index.ts           # 主入口点
+  ├── cli.ts             # CLI 入口点 
+  ├── server.ts          # MCP 服务器实现
   └── services/
-      └── yuque.ts       # Yuque API service
+      └── yuque.ts       # 语雀 API 服务
 ```
 
-### Adding New Tools
+### 添加新工具
 
-To add a new tool, modify the `registerTools` method in `src/server.ts`.
+要添加新工具，请修改 `src/server.ts` 中的 `registerTools` 方法。
 
 ## API 改进
 
@@ -201,12 +203,12 @@ To add a new tool, modify the `registerTools` method in `src/server.ts`.
 
 3. **数据类型完善**：更新了接口定义，使其与语雀 OpenAPI 规范保持一致。
 
-## License
+## 许可证
 
 ISC
 
-## Acknowledgements
+## 致谢
 
-- [Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) for the MCP server implementation
-- [Yuque Open API](https://app.swaggerhub.com/apis-docs/Jeff-Tian/yuque-open_api/2.0.1) for API documentation
-- [Model Context Protocol](https://github.com/anthropics/model-context-protocol) for the MCP specification
+- [Figma-Context-MCP](https://github.com/GLips/Figma-Context-MCP) 提供 MCP 服务器实现参考
+- [语雀开放 API](https://app.swaggerhub.com/apis-docs/Jeff-Tian/yuque-open_api/2.0.1) 提供 API 文档
+- [Model Context Protocol](https://github.com/anthropics/model-context-protocol) 提供 MCP 规范
