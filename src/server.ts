@@ -41,6 +41,85 @@ export class YuqueMcpServer {
     return new YuqueService(this.yuqueApiToken, this.yuqueApiBaseUrl);
   }
 
+  // 将长文档内容分割成较小的块
+  private splitDocumentContent(doc: any, chunkSize: number = 100000): any[] {
+    // 先将整个文档对象转换为格式化的JSON字符串
+    const fullDocString = JSON.stringify(doc, null, 2);
+    
+    // 如果整个文档字符串长度小于块大小，直接返回原文档
+    if (fullDocString.length <= chunkSize) {
+      return [doc];
+    }
+    
+    // 使用简单的文本分割逻辑，添加重叠内容
+    const overlapSize = 200; // 块之间的重叠大小
+    const chunks: string[] = [];
+    
+    // 直接按照固定大小分割，不考虑内容边界
+    let startIndex = 0;
+    while (startIndex < fullDocString.length) {
+      // 计算当前块的结束位置
+      const endIndex = Math.min(startIndex + chunkSize, fullDocString.length);
+      
+      // 提取当前块内容
+      chunks.push(fullDocString.substring(startIndex, endIndex));
+      
+      // 更新下一个块的起始位置，确保有重叠
+      startIndex = endIndex - overlapSize;
+      
+      // 如果已经到达文本末尾或下一次循环会导致无效分块，则退出循环
+      if (startIndex >= fullDocString.length - overlapSize) {
+        break;
+      }
+    }
+    
+    // 为每个块创建对应的文档对象，添加分块和上下文信息
+    return chunks.map((chunk, index) => {
+      // 创建一个返回对象
+      const result: any = {
+        _original_doc_id: doc.id,
+        _original_title: doc.title,
+        _chunk_info: {
+          index: index,
+          total: chunks.length,
+          is_chunked: true,
+          chunk_size: chunkSize,
+          overlap_size: overlapSize,
+          content_type: 'full_doc_json',
+          // 添加上下文信息
+          context: {
+            has_previous: index > 0,
+            has_next: index < chunks.length - 1,
+            // 添加提示，指出这是部分内容
+            note: index > 0 ? "此内容包含与前一块重叠的部分" : ""
+          }
+        }
+      };
+      
+      // 保存原始文本块
+      result.text_content = chunk;
+      
+      // 尝试将文本块解析回JSON（如果是完整的JSON对象）
+      try {
+        // 仅当文本以 { 开头且以 } 结尾时尝试解析
+        if (chunk.trim().startsWith('{') && chunk.trim().endsWith('}')) {
+          const parsedChunk = JSON.parse(chunk);
+          
+          // 合并解析后的属性到结果对象
+          Object.assign(result, parsedChunk);
+        }
+      } catch (e) {
+        // 解析失败，保留文本格式
+        result.parse_error = "块内容不是完整的JSON对象，保留为文本";
+      }
+      
+      // 修改标题，添加分块标记
+      result.title = `${doc.title} [部分 ${index + 1}/${chunks.length}]`;
+      
+      return result;
+    });
+  }
+
   private registerTools(): void {
     // Tool to get current user information
     this.server.tool(
@@ -146,21 +225,58 @@ export class YuqueMcpServer {
     // Tool to get a specific document
     this.server.tool(
       "get_doc",
-      "获取语雀中特定文档的详细内容，包括正文、修改历史和权限信息",
+      "获取语雀中特定文档的详细内容，包括正文、修改历史和权限信息（支持分块处理大型文档）",
       {
         namespace: z.string().describe("知识库的命名空间，格式为 user/repo"),
         slug: z.string().describe("文档的唯一标识或短链接名称"),
+        chunk_index: z.number().optional().describe("要获取的文档块索引，不提供则返回第一块或全部（如果内容较小）"),
+        chunk_size: z.number().optional().describe("分块大小（字符数），默认为100000"),
       },
-      async ({ namespace, slug }) => {
+      async ({ namespace, slug, chunk_index, chunk_size = 100000 }) => {
         try {
           Logger.log(`Fetching document ${slug} from repository: ${namespace}`);
           const yuqueService = this.createYuqueService();
           const doc = await yuqueService.getDoc(namespace, slug);
           
-          Logger.log(`Successfully fetched document: ${doc.title}`);
-          return {
-            content: [{ type: "text", text: JSON.stringify(doc, null, 2) }],
-          };
+          Logger.log(`Successfully fetched document: ${doc.title}, content length: ${doc.body?.length || 0} chars`);
+          
+          // 将文档内容分割成块
+          const docChunks = this.splitDocumentContent(doc, chunk_size);
+          
+          if (docChunks.length > 1) {
+            Logger.log(`Document has been split into ${docChunks.length} chunks`);
+            
+            // 如果没有指定块索引，默认返回第一块
+            if (chunk_index === undefined) {
+              // 返回第一块的同时提供分块信息
+              const firstChunk = docChunks[0];
+              Logger.log(`Returning first chunk (1/${docChunks.length})`);
+              return {
+                content: [{ type: "text", text: JSON.stringify(firstChunk, null, 2) }],
+              };
+            }
+            
+            // 如果指定了块索引，检查有效性
+            if (chunk_index < 0 || chunk_index >= docChunks.length) {
+              const error = `Invalid chunk_index: ${chunk_index}. Valid range is 0-${docChunks.length - 1}`;
+              Logger.error(error);
+              return {
+                content: [{ type: "text", text: error }],
+              };
+            }
+            
+            // 返回指定的块
+            Logger.log(`Returning chunk ${chunk_index + 1}/${docChunks.length}`);
+            return {
+              content: [{ type: "text", text: JSON.stringify(docChunks[chunk_index], null, 2) }],
+            };
+          } else {
+            // 如果文档很小，不需要分块，直接返回完整文档
+            Logger.log(`Document is small enough, no chunking needed`);
+            return {
+              content: [{ type: "text", text: JSON.stringify(doc, null, 2) }],
+            };
+          }
         } catch (error) {
           Logger.error(`Error fetching doc ${slug} from repo ${namespace}:`, error);
           return {
@@ -422,6 +538,71 @@ export class YuqueMcpServer {
         }
       },
     );
+
+    // 获取文档分块元信息
+    this.server.tool(
+      "get_doc_chunks_info",
+      "获取文档的分块元信息，包括总块数、每块的字符数等",
+      {
+        namespace: z.string().describe("知识库的命名空间，格式为 user/repo"),
+        slug: z.string().describe("文档的唯一标识或短链接名称"),
+        chunk_size: z.number().optional().describe("分块大小（字符数），默认为100000"),
+      },
+      async ({ namespace, slug, chunk_size = 100000 }) => {
+        try {
+          Logger.log(`Fetching document chunk info for ${slug} from repository: ${namespace}`);
+          const yuqueService = this.createYuqueService();
+          const doc = await yuqueService.getDoc(namespace, slug);
+          
+          // 将整个文档转换为JSON字符串来评估总长度
+          const fullDocString = JSON.stringify(doc, null, 2);
+          
+          // 计算会产生多少块
+          const overlapSize = 200;
+          let totalChunks = 1;
+          
+          if (fullDocString.length > chunk_size) {
+            // 简单计算分块数量，考虑重叠
+            // 公式：向上取整((总长度 - 重叠大小) / (块大小 - 重叠大小))
+            totalChunks = Math.ceil((fullDocString.length - overlapSize) / (chunk_size - overlapSize));
+          }
+          
+          // 构建分块元信息对象
+          const chunksInfo = {
+            document_id: doc.id,
+            title: doc.title,
+            total_chunks: totalChunks,
+            total_length: fullDocString.length,
+            chunk_size: chunk_size,
+            overlap_size: overlapSize,
+            estimated_chunks: Array.from({ length: totalChunks }, (_, index) => {
+              // 估计每个块的起始和结束位置
+              const startPosition = index === 0 ? 0 : (index * (chunk_size - overlapSize));
+              const endPosition = Math.min(startPosition + chunk_size, fullDocString.length);
+              
+              return {
+                index: index,
+                title: `${doc.title} [部分 ${index + 1}/${totalChunks}]`,
+                approximate_start: startPosition,
+                approximate_end: endPosition,
+                approximate_length: endPosition - startPosition,
+                how_to_get: `使用 get_doc 工具，指定 chunk_index=${index}`
+              };
+            })
+          };
+          
+          Logger.log(`Document would be split into ${totalChunks} chunks with size ${chunk_size}`);
+          return {
+            content: [{ type: "text", text: JSON.stringify(chunksInfo, null, 2) }],
+          };
+        } catch (error) {
+          Logger.error(`Error fetching doc chunks info for ${slug} from repo ${namespace}:`, error);
+          return {
+            content: [{ type: "text", text: `Error fetching doc chunks info: ${error}` }],
+          };
+        }
+      },
+    );
   }
 
   async connect(transport: Transport): Promise<void> {
@@ -452,7 +633,8 @@ export class YuqueMcpServer {
       { name: "get_user_docs", description: "获取当前用户的所有知识库文档列表，包括私人和协作文档" },
       { name: "get_user_repos", description: "获取指定用户的知识库列表，知识库是语雀中组织文档的集合" },
       { name: "get_repo_docs", description: "获取特定知识库中的所有文档列表，包括文档标题、更新时间等信息" },
-      { name: "get_doc", description: "获取语雀中特定文档的详细内容，包括正文、修改历史和权限信息" },
+      { name: "get_doc", description: "获取语雀中特定文档的详细内容，包括正文、修改历史和权限信息（支持分块处理大型文档）" },
+      { name: "get_doc_chunks_info", description: "获取文档的分块元信息，包括总块数、每块的字符数等" },
       { name: "create_doc", description: "在指定知识库中创建新的语雀文档，支持多种格式内容" },
       { name: "update_doc", description: "更新语雀中已存在的文档，可以修改标题、内容或权限设置" },
       { name: "delete_doc", description: "从语雀知识库中删除指定文档，此操作不可撤销" },

@@ -338,6 +338,11 @@ export class YuqueService {
     if (page_size !== undefined) params.page_size = page_size;
     
     const response = await this.client.get(`/repos/${namespace}/docs/${slug}`, { params });
+    // filter body_lake body_draft 
+    // 过滤不需要的原始格式内容
+    if (response.data.data.body_lake) delete response.data.data.body_lake;
+    if (response.data.data.body_draft) delete response.data.data.body_draft;
+    if (response.data.data.body_html) delete response.data.data.body_html;
     return response.data.data;
   }
 
