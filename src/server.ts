@@ -45,6 +45,7 @@ export class YuqueMcpServer {
   private splitDocumentContent(doc: any, chunkSize: number = 100000): any[] {
     // 先将整个文档对象转换为格式化的JSON字符串
     const fullDocString = JSON.stringify(doc, null, 2);
+    console.log("fullDocString length: "+ fullDocString.length);
     
     // 如果整个文档字符串长度小于块大小，直接返回原文档
     if (fullDocString.length <= chunkSize) {
