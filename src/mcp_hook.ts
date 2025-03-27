@@ -36,7 +36,7 @@ export async function mcpHook_updateMessageBody(req:express.Request) :Promise<an
     return bodyJson;
 }
 
-function getFixedQuery(query: Record<string, string>) {
+export function getFixedQuery(query: Record<string, string>) {
     // query may be error like this:
     // {
     //     "somequery": "1234567890?sessionId=1234567890",

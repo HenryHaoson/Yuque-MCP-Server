@@ -6,6 +6,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { IncomingMessage, ServerResponse } from "http";
 import { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
+  getFixedQuery,
   mcpHook_updateMessageBody,
   mcpHook_updateMessageEndpoint,
 } from "./mcp_hook";
@@ -961,7 +962,7 @@ export class YuqueMcpServer {
     });
 
     app.post("/messages", async (req: Request, res: Response) => {
-      const sessionId = req.query.sessionId as string;
+      const sessionId = getFixedQuery(req.query as Record<string, string>)["sessionId"];
       const transport = transports[sessionId];
       try {
         if (!transport) {
