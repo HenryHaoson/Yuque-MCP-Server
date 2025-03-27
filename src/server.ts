@@ -17,7 +17,6 @@ export const Logger = {
 
 export class YuqueMcpServer {
   private readonly server: McpServer;
-  private sseTransport: SSEServerTransport | null = null;
   private yuqueApiToken: string;
   private yuqueApiBaseUrl: string;
 
@@ -934,6 +933,7 @@ export class YuqueMcpServer {
 
   async startHttpServer(port: number): Promise<void> {
     const app = express();
+    const transports: {[sessionId: string]: SSEServerTransport} = {};
 
     // 添加健康检查端点
     app.get("/health", (req, res) => {
@@ -948,11 +948,12 @@ export class YuqueMcpServer {
       try {
         const hookUrl = mcpHook_updateMessageEndpoint(req);
         console.log("hookUrl: " + hookUrl);
-        this.sseTransport = new SSEServerTransport(
-          hookUrl,
-          res as unknown as ServerResponse<IncomingMessage>
-        );
-        await this.server.connect(this.sseTransport);
+        const transport = new SSEServerTransport(hookUrl, res);
+        transports[transport.sessionId] = transport;
+        res.on("close", () => {
+          delete transports[transport.sessionId];
+        });
+        await this.server.connect(transport);
       } catch (error) {
         Logger.error("Error connecting to SSE: " + error);
         res.status(500).send("Error connecting to SSE");
@@ -960,18 +961,19 @@ export class YuqueMcpServer {
     });
 
     app.post("/messages", async (req: Request, res: Response) => {
+      const sessionId = req.query.sessionId as string;
+      const transport = transports[sessionId];
       try {
-        if (!this.sseTransport) {
-          res.status(400).send("SSE connection not established");
+        if (!transport) {
+          res.status(400).send("No transport found for sessionId");
           return;
         }
-
         try {
           // 处理请求并获取消息内容
           const messageContent = await mcpHook_updateMessageBody(req);
           
           // 使用处理好的消息内容调用handleMessage
-          await this.sseTransport.handleMessage(messageContent);
+          await transport.handleMessage(messageContent);
           
           // 返回成功响应
           if (!res.headersSent) {
