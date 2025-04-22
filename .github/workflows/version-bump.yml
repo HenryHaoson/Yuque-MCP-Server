@@ -1,0 +1,42 @@
+name: 版本更新
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本类型 (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 设置 Git 用户
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+      
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: 更新版本号
+        run: |
+          npm version ${{ github.event.inputs.version }} -m "bump: version %s"
+      
+      - name: 推送更改和标签
+        run: |
+          git push
+          git push --tags 
