@@ -1,0 +1,53 @@
+{
+  "name": "yueque-mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Yuque API integration",
+  "main": "dist/index.js",
+  "bin": {
+    "yuque-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "start:cli": "cross-env NODE_ENV=cli node dist/index.js",
+    "start:http": "node dist/index.js",
+    "dev": "cross-env NODE_ENV=development ts-node-dev --respawn src/index.ts",
+    "dev:cli": "cross-env NODE_ENV=development ts-node-dev --respawn src/index.ts --stdio"
+  },
+  "keywords": [
+    "yuque",
+    "api",
+    "mcp",
+    "server"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "@types/content-type": "^1.1.8",
+    "axios": "^1.8.1",
+    "content-type": "^1.0.5",
+    "cors": "^2.8.5",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "raw-body": "^3.0.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.9",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.8.2"
+  }
+}

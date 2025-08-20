@@ -1,0 +1,16 @@
+version: '2'
+
+services:
+  yuque-mcp-server:
+    build: .
+    image: yuque-mcp-server:latest
+    container_name: yuque-mcp-server
+    restart: unless-stopped
+    ports:
+      - "4000:3000"
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+    volumes:
+      - ./logs:/usr/src/app/logs
