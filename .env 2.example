@@ -1,0 +1,6 @@
+# Server configuration
+PORT=3000
+
+# Yuque API configuration
+YUQUE_API_TOKEN=your_yuque_api_token_here
+YUQUE_API_BASE_URL=https://www.yuque.com/api/v2
