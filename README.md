@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/henryhaoson-yuque-mcp-server-badge.png)](https://mseep.ai/app/henryhaoson-yuque-mcp-server)
+
 # 语雀 MCP 服务器
 
 [![smithery badge](https://smithery.ai/badge/@HenryHaoson/Yuque-MCP-Server)](https://smithery.ai/server/@HenryHaoson/Yuque-MCP-Server)
