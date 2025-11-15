@@ -1,0 +1,24 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required: []
+    properties:
+      yuqueApiToken:
+        type: string
+        default: ""
+        description: Yuque API token for authentication
+      yuqueApiBaseUrl:
+        type: string
+        default: https://www.yuque.com/api/v2
+        description: Base URL for Yuque API
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'node', args: ['dist/index.js'], env: { NODE_ENV: 'cli', YUQUE_API_TOKEN: config.yuqueApiToken, YUQUE_API_BASE_URL: config.yuqueApiBaseUrl } })
+  exampleConfig:
+    yuqueApiToken: your_token_here
+    yuqueApiBaseUrl: https://www.yuque.com/api/v2
